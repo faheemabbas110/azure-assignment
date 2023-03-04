@@ -1,0 +1,21 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: app2-svc
+  namespace: ingress-basic
+spec:
+  type: ExternalName
+  externalName: springboot-app2-helm-crud-app.default.svc.cluster.local
+  ports:
+  - port: 8181
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: app1-svc
+  namespace: ingress-basic
+spec:
+  type: ExternalName
+  externalName: springboot-app1-heml-deployment.default.svc.cluster.local
+  ports:
+  - port: 80

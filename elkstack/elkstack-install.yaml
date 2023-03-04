@@ -1,0 +1,18 @@
+kubectl create ns elk
+helm install elasticsearch elasticsearch --namespace elk --version 8.5.1
+helm install filebeat filebeat --namespace elk --version 8.5.1
+helm install logstash logstash --namespace elk --version 8.5.1
+helm install kibana kibana --namespace elk --version 8.5.1
+
+
+
+---
+helm uninstall kibana --namespace elk
+helm uninstall logstash --namespace elk
+helm uninstall filebeat --namespace elk
+helm uninstall elasticsearch --namespace elk
+
+kubectl delete ns elk
+
+
+ 

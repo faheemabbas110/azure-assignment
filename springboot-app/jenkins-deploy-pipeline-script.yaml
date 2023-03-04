@@ -1,0 +1,79 @@
+pipeline {
+    agent {label 'slave'}
+    tools
+    {
+        maven "Maven3"
+    }
+    
+    environment {
+        registryName = "demoazacr7710"
+        registryCredential = 'ACR'
+        registryUrl = 'demoazacr7710.azurecr.io'
+        dockerImage= ""
+    }
+    stages {
+        stage('checkout') {
+            steps {
+                git branch: 'main', url: 'https://github.com/faheemabbas110/springboot-app.git'
+            }
+        }
+	    stage('Build') {
+            steps {
+				sh 'mvn clean install'
+			}
+	    }
+	    stage('RemoveImage') {
+            steps {
+                script { 
+                    def imageName = "demoazacr7710.azurecr.io/demoazacr7710"
+                    env.imageName = "${imageName}"
+                    def oldImageID = sh( 
+                                            script: 'docker images -qf reference=\${imageName}:latest',
+                                            returnStdout: true
+                                        )
+
+                    echo "Image Name: " + "${imageName}"
+                    echo "Old Image: ${oldImageID}"
+
+                    if ( "${oldImageID}" != '' ) {
+                        echo "Deleting image id: ${oldImageID}..."
+                         sh "docker rmi -f ${oldImageID}"
+                    } else {
+                        echo "No image to delete..."
+                        } 
+                    }
+            }
+        }
+	    stage('Build Image') {
+            steps {
+				script {
+				    dockerImage = docker.build registryName
+				}
+			}
+	    }
+	    stage('Push Image ACR') {
+            steps {
+				script {
+                    docker.withRegistry( "http://${registryUrl}", registryCredential ) {
+                    dockerImage.push()
+                    }
+                }
+			}
+	    }
+	    stage('Remove Deployment') {
+            steps {
+				script {
+				    sh "kubectl delete deployment my-springboot-deployment"
+				}
+			}
+	    }
+		stage('Deploy to kubernetes'){
+		    steps{
+			    withKubeConfig(caCertificate: '', clusterName: '', contextName: '', credentialsId: 'K8S', namespace: '', restrictKubeConfigAccess: false, serverUrl: '') 
+			        {
+                     sh "kubectl apply -f jenkins-aks-deploy-from-acr.yaml"
+                    }
+			}
+	    }
+    }
+}
